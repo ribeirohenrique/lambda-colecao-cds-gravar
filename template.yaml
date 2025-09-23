@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template para a lambda de gravacao de CDs com Spring Boot 3
+
+Resources:
+  # Tabela DynamoDB para armazenar os CDs
+  CDsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: colecao-cds
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  # A função Lambda
+  GravarCDFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambda-colecao-cds-gravar
+      CodeUri: target/lambda-colecao-cds-gravar-0.0.1-SNAPSHOT.jar # Caminho para o JAR
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker::handleRequest
+      Runtime: java21
+      Architectures:
+        - x86_64
+      MemorySize: 1024
+      Timeout: 30
+      Environment:
+        Variables:
+          # Passa o nome da tabela e a definição da função para a aplicação
+          DYNAMODB_TABLE_NAME: !Ref CDsTable
+          SPRING_CLOUD_FUNCTION_DEFINITION: gravarCD
+      Policies:
+        # Permissão para a Lambda escrever na tabela DynamoDB criada
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CDsTable
+      Events:
+        # Gatilho via API Gateway
+        GravarApi:
+          Type: Api
+          Properties:
+            Path: /cds
+            Method: post
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL para a função GravarCD"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cds/"
+  GravarCDFunctionArn:
+    Description: "ARN da função Lambda GravarCD"
+    Value: !GetAtt GravarCDFunction.Arn

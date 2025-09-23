@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: lambda-colecao-cds-gravar
+  cloud:
+    function:
+      # Define qual bean de Função será exposto pela Lambda
+      definition: gravarCD
+# O nome da tabela DynamoDB será injetado via variável de ambiente no SAM
+dynamodb:
+  table:
+    name: ${DYNAMODB_TABLE_NAME}
